@@ -95,7 +95,7 @@ export default function AdminDocumentsPage() {
       // preserveSelectedSubsidyがtrueの場合は、現在の選択を維持
       // ただし、選択されている助成金が存在しない場合は最初のものを選択
       else if (preserveSelectedSubsidy && data.subsidies && data.subsidies.length > 0) {
-        const currentExists = data.subsidies.find(s => s.id === selectedSubsidy)
+        const currentExists = data.subsidies.find((s: SubsidyType) => s.id === selectedSubsidy)
         if (!currentExists) {
           setSelectedSubsidy(data.subsidies[0].id)
         }
@@ -109,7 +109,7 @@ export default function AdminDocumentsPage() {
   }
 
   const getSelectedSubsidyData = () => {
-    return subsidies.find(s => s.id === selectedSubsidy) || null
+    return subsidies.find((s: SubsidyType) => s.id === selectedSubsidy) || null
   }
 
   const handleAddDocument = async (formData: Partial<SubsidyDocument>) => {

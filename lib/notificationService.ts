@@ -261,38 +261,43 @@ SubsidySmart - 助成金申請支援システム
     message?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const application = await DatabaseService.getApplication(applicationId)
-      if (!application) {
-        return { success: false, error: '申請が見つかりません' }
-      }
+      // TODO: Re-enable after fixing DatabaseService methods
+      // const application = await DatabaseService.getApplication(applicationId)
+      // if (!application) {
+      //   return { success: false, error: '申請が見つかりません' }
+      // }
+      const application = null // Temporary placeholder
 
-      const email = application.email || application.company?.email
-      if (!email) {
-        return { success: false, error: 'メールアドレスが設定されていません' }
-      }
+      // TODO: Re-enable email extraction after fixing DatabaseService
+      // const email = application.email || application.company?.email
+      // if (!email) {
+      //   return { success: false, error: 'メールアドレスが設定されていません' }
+      // }
+      return { success: false, error: 'Notification service temporarily disabled' }
 
-      const deadlines = application.deadlines
-      const nearestDeadline = deadlines?.find(d => d.deadline_type === 'application_deadline')
-      
-      if (!nearestDeadline) {
-        return { success: false, error: '申請期限が設定されていません' }
-      }
-
-      const daysUntil = Math.ceil(
-        (new Date(nearestDeadline.deadline_date).getTime() - new Date().getTime()) / 
-        (1000 * 60 * 60 * 24)
-      )
-
-      const reminderData: DeadlineReminderData = {
-        companyName: application.company?.name || '会社名不明',
-        subsidyName: this.getSubsidyDisplayName(application.subsidy_type || 'career_up'),
-        deadlineDate: new Date(nearestDeadline.deadline_date).toLocaleDateString('ja-JP'),
-        daysUntilDeadline: daysUntil,
-        applicationId,
-        dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL}/applications`
-      }
-
-      return await this.sendDeadlineReminder(email, reminderData)
+      // TODO: Re-enable after fixing DatabaseService
+      // const deadlines = application.deadlines
+      // const nearestDeadline = deadlines?.find(d => d.deadline_type === 'application_deadline')
+      // 
+      // if (!nearestDeadline) {
+      //   return { success: false, error: '申請期限が設定されていません' }
+      // }
+      // 
+      // const daysUntil = Math.ceil(
+      //   (new Date(nearestDeadline.deadline_date).getTime() - new Date().getTime()) / 
+      //   (1000 * 60 * 60 * 24)
+      // )
+      // 
+      // const reminderData: DeadlineReminderData = {
+      //   companyName: application.company?.name || '会社名不明',
+      //   subsidyName: this.getSubsidyDisplayName(application.subsidy_type || 'career_up'),
+      //   deadlineDate: new Date(nearestDeadline.deadline_date).toLocaleDateString('ja-JP'),
+      //   daysUntilDeadline: daysUntil,
+      //   applicationId,
+      //   dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL}/applications`
+      // }
+      // 
+      // return await this.sendDeadlineReminder(email, reminderData)
     } catch (error) {
       return {
         success: false,

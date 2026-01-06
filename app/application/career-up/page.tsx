@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { User } from '@supabase/supabase-js'
@@ -9,6 +9,7 @@ import AICheckResult from '@/components/AICheckResult'
 import { UploadService } from '@/lib/uploadService'
 import { Document } from '@/types/database'
 import { ApplicationInfo } from '@/types/deadline'
+import { DeadlineCalculator } from '@/lib/deadlineUtils'
 
 interface RequiredDocument {
   id: string
@@ -23,7 +24,7 @@ interface RequiredDocument {
   max_file_size: number
 }
 
-export default function CareerUpApplicationPage() {
+function CareerUpApplicationPageContent() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [documents, setDocuments] = useState<Document[]>([])
@@ -605,5 +606,13 @@ export default function CareerUpApplicationPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CareerUpApplicationPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-gray-600">読み込み中...</div></div>}>
+      <CareerUpApplicationPageContent />
+    </Suspense>
   )
 }

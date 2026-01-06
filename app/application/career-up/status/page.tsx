@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { User } from '@supabase/supabase-js'
@@ -23,7 +23,7 @@ interface StatusStep {
   completedAt?: string
 }
 
-export default function ApplicationStatusPage() {
+function ApplicationStatusPageContent() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [applicationInfo, setApplicationInfo] = useState<ApplicationInfo | null>(null)
@@ -424,14 +424,14 @@ export default function ApplicationStatusPage() {
                       <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-5L9 2H4z" clipRule="evenodd"/>
                     </svg>
                     <div>
-                      <div className="font-medium text-gray-900">{doc.filename}</div>
+                      <div className="font-medium text-gray-900">{doc.file_name}</div>
                       <div className="text-sm text-gray-500">
-                        アップロード日: {new Date(doc.upload_date || new Date()).toLocaleDateString('ja-JP')}
+                        アップロード日: {new Date(doc.created_at || new Date()).toLocaleDateString('ja-JP')}
                       </div>
                     </div>
                   </div>
                   <button
-                    onClick={() => handleDownloadDocument(doc.filename)}
+                    onClick={() => handleDownloadDocument(doc.file_name)}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
                   >
                     ダウンロード
@@ -479,5 +479,13 @@ export default function ApplicationStatusPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function ApplicationStatusPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="text-gray-600">読み込み中...</div></div>}>
+      <ApplicationStatusPageContent />
+    </Suspense>
   )
 }

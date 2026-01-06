@@ -10,7 +10,7 @@ import { UploadService } from '@/lib/uploadService'
 import { TestPdfGenerator } from '@/lib/testPdfGenerator'
 
 interface ClientApplication extends ApplicationInfo {
-  status: 'draft' | 'in_progress' | 'completed' | 'submitted' | 'approved' | 'rejected'
+  status: 'draft' | 'in_progress' | 'completed' | 'submitted' | 'review' | 'approved' | 'rejected'
   documentCount: number
   lastUpdated: string
   clientEmail: string
@@ -30,6 +30,23 @@ interface Document {
   file_size?: string
   review_status?: 'not_reviewed' | 'approved' | 'rejected'
   review_notes?: string
+}
+
+// 書類タイプから日本語名へのマッピング
+const getDocumentTypeName = (documentType: string): string => {
+  const documentTypeMap: { [key: string]: string } = {
+    'employment_rules': '就業規則（写し）',
+    'employment_contract_before': '雇用契約書（転換前）',
+    'employment_contract_after': '雇用契約書（転換後）',
+    'wage_ledger_before': '賃金台帳（転換前6ヶ月分）',
+    'wage_ledger_after': '賃金台帳（転換後6ヶ月分）',
+    'attendance_before': '出勤簿（転換前6ヶ月分）',
+    'attendance_after': '出勤簿（転換後6ヶ月分）',
+    'career_plan': 'キャリアアップ計画書（写し）',
+    'salary_transfer_proof': '賃金振込の証明書'
+  }
+  
+  return documentTypeMap[documentType] || documentType
 }
 
 export default function AdminReviewPage() {
@@ -295,9 +312,9 @@ export default function AdminReviewPage() {
       
       // 各ドキュメントにBase64コンテンツを追加
       const documentsWithBase64: Document[] = await Promise.all(
-        uploadedDocs.map(async (doc) => {
+        uploadedDocs.map(async (doc: any) => {
           // ファイルタイプを判定
-          let fileType = doc.file_type || 'application/pdf'
+          let fileType = doc.mime_type || 'application/pdf'
           if (doc.file_name) {
             const ext = doc.file_name.toLowerCase().split('.').pop()
             switch (ext) {
@@ -362,7 +379,6 @@ export default function AdminReviewPage() {
             file_size: doc.file_size || 'Unknown',
             base64Content: base64Content,
             fileType: fileType,
-            file_content: doc.file_content || '',
             review_status: 'not_reviewed',
             review_notes: ''
           }
@@ -417,10 +433,10 @@ export default function AdminReviewPage() {
       ]
 
       // 実際にアップロードされているドキュメントのみを表示
-      const documentsData: Document[] = documentTypes
-        .filter(docType => uploadedDocs[docType.type]) // アップロード済みのみフィルター
+      const documentsData = documentTypes
+        .filter(docType => uploadedDocs[docType.type as keyof typeof uploadedDocs]) // アップロード済みのみフィルター
         .map((doc) => {
-          const uploadInfo = uploadedDocs[doc.type]
+          const uploadInfo = uploadedDocs[doc.type as keyof typeof uploadedDocs] as any
           
           // uploadInfoが存在しない場合のデフォルト値
           if (!uploadInfo || typeof uploadInfo !== 'object') {
@@ -454,17 +470,17 @@ export default function AdminReviewPage() {
             id: `${applicationId}-${doc.type}`,
             document_type: doc.name,
             filename: uploadInfo.filename || `${doc.name}.pdf`,
-            upload_status: 'completed',
+            upload_status: 'completed' as const,
             upload_date: uploadInfo.uploadDate,
             file_size: uploadInfo.fileSize,
             base64Content: uploadInfo.base64Content,
             fileType: fileType,
             file_content: `【${doc.name}】\n\n実際のファイルコンテンツ:\n${uploadInfo.filename || doc.name}`,
-            review_status: 'not_reviewed',
+            review_status: 'not_reviewed' as const,
             review_notes: ''
-          }
+          } as Document
         })
-        .filter((doc): doc is Document => doc !== null) // nullを除外
+        .filter(doc => doc !== null) // nullを除外
       
       console.log('Setting localStorage documents, count:', documentsData.length)
       setDocuments(documentsData)
@@ -839,7 +855,7 @@ export default function AdminReviewPage() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center mb-2">
-                        <h4 className="font-medium text-gray-900 mr-3">{doc.document_type}</h4>
+                        <h4 className="font-medium text-gray-900 mr-3">{getDocumentTypeName(doc.document_type)}</h4>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           doc.upload_status === 'completed' ? 'bg-green-100 text-green-800' :
                           doc.upload_status === 'error' ? 'bg-red-100 text-red-800' :
