@@ -191,20 +191,90 @@ export class DatabaseService {
   }
 
   static async getSubsidyApplication(applicationId: string) {
-    // RLSの問題を避けるためにsupabaseAdminを使用
-    const { data, error } = await supabaseAdmin
-      .from('applications')
-      .select(`
-        *,
-        company:companies(*),
-        documents(*),
-        deadlines(*)
-      `)
-      .eq('id', applicationId)
-      .single()
+    try {
+      console.log('Getting application with ID:', applicationId)
+      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+      console.log('Service Role Key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
+      
+      // まず、すべてのアプリケーションを取得してIDが存在するか確認
+      const { data: allApps, error: allAppsError } = await supabaseAdmin
+        .from('applications')
+        .select('id, company_name, status')
+        .limit(50)
+      
+      console.log('All applications in database:', allApps?.map(app => ({ id: app.id, name: app.company_name, status: app.status })))
+      
+      if (allAppsError) {
+        console.error('Error fetching all applications:', allAppsError)
+      }
+      
+      // 特定のIDをチェック
+      const targetExists = allApps?.find(app => app.id === applicationId)
+      console.log('Target application exists in database:', targetExists)
+      
+      // 通常のクエリ
+      const { data: applicationData, error: applicationError } = await supabaseAdmin
+        .from('applications')
+        .select('*')
+        .eq('id', applicationId)
+        .maybeSingle()
 
-    if (error) throw error
-    return data
+      console.log('Application query result:', { applicationData, applicationError })
+
+      if (applicationError) {
+        console.error('Application query error:', applicationError)
+        throw applicationError
+      }
+
+      if (!applicationData) {
+        console.log('No application found for ID:', applicationId)
+        return null
+      }
+
+      // 基本の申請データを取得した後、関連データを個別に取得
+      const result = { ...applicationData }
+
+      // 会社情報を取得
+      if (result.company_id) {
+        const { data: companyData } = await supabaseAdmin
+          .from('companies')
+          .select('*')
+          .eq('id', result.company_id)
+          .maybeSingle()
+        
+        if (companyData) {
+          result.company = companyData
+        }
+      }
+
+      // ユーザープロファイル情報を取得
+      if (result.user_id) {
+        const { data: userProfileData } = await supabaseAdmin
+          .from('user_profiles')
+          .select('*')
+          .eq('id', result.user_id)
+          .maybeSingle()
+        
+        if (userProfileData) {
+          result.user_profile = userProfileData
+        }
+      }
+
+      // ドキュメント数を取得
+      const { count: documentsCount } = await supabaseAdmin
+        .from('documents')
+        .select('*', { count: 'exact', head: true })
+        .eq('application_id', applicationId)
+      
+      result.documents_count = documentsCount || 0
+
+      console.log('Final application data:', result)
+      return result
+      
+    } catch (error) {
+      console.error('Error in getSubsidyApplication:', error)
+      throw error
+    }
   }
 
   static async getApplicationsByUser(userId: string) {
@@ -273,20 +343,77 @@ export class DatabaseService {
   }
 
   static async getAllSubsidyApplicationsForAdmin() {
-    // RLSの問題を避けるためにsupabaseAdminを使用
-    const { data, error } = await supabaseAdmin
-      .from('applications')
-      .select(`
-        *,
-        company:companies(*),
-        user_profile:user_profiles(*),
-        documents(count),
-        deadlines(*)
-      `)
-      .order('created_at', { ascending: false })
+    try {
+      console.log('Getting all applications for admin dashboard...')
+      
+      // RLSの問題を避けるためにsupabaseAdminを使用
+      const { data, error } = await supabaseAdmin
+        .from('applications')
+        .select('*')
+        .order('created_at', { ascending: false })
 
-    if (error) throw error
-    return data
+      console.log('Applications query result:', { count: data?.length, error })
+
+      if (error) {
+        console.error('Applications query error:', error)
+        throw error
+      }
+
+      if (!data || data.length === 0) {
+        console.log('No applications found')
+        return []
+      }
+
+      // 各申請に関連データを個別に追加
+      const enrichedApplications = await Promise.all(
+        data.map(async (app) => {
+          const result = { ...app }
+
+          // 会社情報を取得
+          if (app.company_id) {
+            const { data: companyData } = await supabaseAdmin
+              .from('companies')
+              .select('*')
+              .eq('id', app.company_id)
+              .maybeSingle()
+            
+            if (companyData) {
+              result.company = companyData
+            }
+          }
+
+          // ユーザープロファイル情報を取得
+          if (app.user_id) {
+            const { data: userProfileData } = await supabaseAdmin
+              .from('user_profiles')
+              .select('*')
+              .eq('id', app.user_id)
+              .maybeSingle()
+            
+            if (userProfileData) {
+              result.user_profile = userProfileData
+            }
+          }
+
+          // ドキュメント数を取得
+          const { count: documentsCount } = await supabaseAdmin
+            .from('documents')
+            .select('*', { count: 'exact', head: true })
+            .eq('application_id', app.id)
+          
+          result.documents_count = documentsCount || 0
+
+          return result
+        })
+      )
+
+      console.log('Enriched applications:', enrichedApplications.map(app => ({ id: app.id, name: app.company_name, status: app.status })))
+      return enrichedApplications
+
+    } catch (error) {
+      console.error('Error in getAllSubsidyApplicationsForAdmin:', error)
+      throw error
+    }
   }
 
   // ドキュメント関連
