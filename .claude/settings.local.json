@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm install)",
+      "Bash(npm test)",
+      "Bash(npm run build:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(npm run dev:*)",
+      "Bash(npm install:*)",
+      "Bash(ls:*)",
+      "Bash(psql:*)",
+      "Bash(psql -h aws-0-ap-northeast-1.pooler.supabase.com -p 6543 -d postgres -U postgres.cvbqxkzvcsrxwkayrnml -f add-application-period-schema.sql)",
+      "Bash(psql -h aws-0-ap-northeast-1.pooler.supabase.com -p 6543 -d postgres -U postgres.cvbqxkzvcsrxwkayrnml -f add-ai-check-columns.sql)",
+      "Bash(find /Users/tech-camp/projects/work/12-16/app/api -name \"*.ts\")",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(git unstage:*)",
+      "Bash(git reset:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}
