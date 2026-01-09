@@ -345,14 +345,49 @@ export class DatabaseService {
   static async getAllSubsidyApplicationsForAdmin() {
     try {
       console.log('Getting all applications for admin dashboard...')
+      console.log('Environment:', {
+        nodeEnv: process.env.NODE_ENV,
+        vercelEnv: process.env.VERCEL_ENV,
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL?.slice(0, 30) + '...',
+        timestamp: new Date().toISOString()
+      })
       
-      // RLSの問題を避けるためにsupabaseAdminを使用
-      const { data, error } = await supabaseAdmin
+      // Vercelのメモリ再利用問題を回避するため、毎回新しいクライアントを作成
+      const { createClient } = await import('@supabase/supabase-js')
+      const freshSupabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          },
+          // 強制的にキャッシュを無効化
+          global: {
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache',
+              'X-Request-ID': `admin-${Date.now()}-${Math.random()}`
+            }
+          }
+        }
+      )
+      
+      // RLSの問題を避けるため、新しいsupabaseAdminクライアントを使用
+      const { data, error } = await freshSupabaseAdmin
         .from('applications')
         .select('*')
         .order('created_at', { ascending: false })
 
-      console.log('Applications query result:', { count: data?.length, error })
+      console.log('Applications query result:', { 
+        count: data?.length, 
+        error,
+        firstRecord: data?.[0] ? {
+          id: data[0].id,
+          company_name: data[0].company_name,
+          created_at: data[0].created_at
+        } : null
+      })
 
       if (error) {
         console.error('Applications query error:', error)
@@ -372,7 +407,7 @@ export class DatabaseService {
 
           // 会社情報を取得
           if (app.company_id) {
-            const { data: companyData } = await supabaseAdmin
+            const { data: companyData } = await freshSupabaseAdmin
               .from('companies')
               .select('*')
               .eq('id', app.company_id)
@@ -385,7 +420,7 @@ export class DatabaseService {
 
           // ユーザープロファイル情報を取得
           if (app.user_id) {
-            const { data: userProfileData } = await supabaseAdmin
+            const { data: userProfileData } = await freshSupabaseAdmin
               .from('user_profiles')
               .select('*')
               .eq('id', app.user_id)
@@ -397,7 +432,7 @@ export class DatabaseService {
           }
 
           // ドキュメント数を取得
-          const { count: documentsCount } = await supabaseAdmin
+          const { count: documentsCount } = await freshSupabaseAdmin
             .from('documents')
             .select('*', { count: 'exact', head: true })
             .eq('application_id', app.id)
