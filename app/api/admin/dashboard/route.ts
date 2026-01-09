@@ -77,13 +77,28 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json(dashboardData)
+    const response = NextResponse.json(dashboardData)
+    
+    // キャッシュを無効化するヘッダーを追加
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    response.headers.set('Surrogate-Control', 'no-store')
+    
+    return response
 
   } catch (error) {
     console.error('管理者ダッシュボードエラー:', error)
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       { error: 'ダッシュボードデータの取得中にエラーが発生しました' },
       { status: 500 }
     )
+    
+    // エラーレスポンスもキャッシュを無効化
+    errorResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    errorResponse.headers.set('Pragma', 'no-cache')
+    errorResponse.headers.set('Expires', '0')
+    
+    return errorResponse
   }
 }

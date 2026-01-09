@@ -29,6 +29,9 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     const checkUser = async () => {
+      // ページロード時にアプリケーション一覧をリセット
+      setApplications([])
+      
       // セッションストレージから管理者認証情報をチェック
       const adminUser = sessionStorage.getItem('adminUser')
       if (adminUser) {
@@ -47,7 +50,8 @@ export default function AdminDashboardPage() {
           updated_at: new Date().toISOString()
         } as User)
         
-        loadApplications()
+        // 常に最新データを取得
+        await loadApplications()
         setLoading(false)
         return
       }
@@ -62,20 +66,28 @@ export default function AdminDashboardPage() {
 
   const loadApplications = async () => {
     try {
+      // データロード開始時にステートをリセット
+      console.log('Loading applications - resetting state first')
+      setApplications([])
+      
       // セッションストレージから管理者認証情報をチェック
       const adminUser = sessionStorage.getItem('adminUser')
       if (!adminUser) {
         console.error('No admin user found')
+        setApplications([])
         return
       }
 
-      // 管理者APIエンドポイントから全申請データを取得
+      // 管理者APIエンドポイントから全申請データを取得（キャッシュを無効化）
       const response = await fetch('/api/admin/dashboard', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer admin-${JSON.parse(adminUser).email}`
-        }
+          'Authorization': `Bearer admin-${JSON.parse(adminUser).email}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store' // Next.jsのキャッシュも無効化
       })
 
       if (!response.ok) {
@@ -84,6 +96,11 @@ export default function AdminDashboardPage() {
 
       const data = await response.json()
       const applicationList = data.applications || []
+      
+      console.log('Raw API response:', { 
+        applicationsCount: applicationList.length, 
+        applications: applicationList.map((app: any) => ({ id: app.id, company_name: app.company_name }))
+      })
       
       const formattedApplications: ClientApplication[] = applicationList.map((app: any) => {
         // planEndDateが未設定の場合は計算する
@@ -114,10 +131,16 @@ export default function AdminDashboardPage() {
         }
       })
       
+      console.log('Formatted applications before setting state:', {
+        count: formattedApplications.length,
+        applications: formattedApplications.map(app => ({ id: app.id, companyName: app.companyName }))
+      })
+      
       setApplications(formattedApplications)
     } catch (error) {
       console.error('管理者申請データ読み込みエラー:', error)
-      // エラー時は空の状態に設定
+      // エラー時は必ず空の状態に設定（デモデータやキャッシュは使用しない）
+      console.log('Setting applications to empty array due to error')
       setApplications([])
     }
   }

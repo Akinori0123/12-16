@@ -359,8 +359,9 @@ export class DatabaseService {
         throw error
       }
 
+      // Supabaseにデータがない場合は必ず空配列を返す（デモデータやローカルストレージは使用しない）
       if (!data || data.length === 0) {
-        console.log('No applications found')
+        console.log('No applications found in database - returning empty array')
         return []
       }
 
@@ -407,12 +408,13 @@ export class DatabaseService {
         })
       )
 
-      console.log('Enriched applications:', enrichedApplications.map(app => ({ id: app.id, name: app.company_name, status: app.status })))
+      console.log('Enriched applications from database only:', enrichedApplications.map(app => ({ id: app.id, name: app.company_name, status: app.status })))
       return enrichedApplications
 
     } catch (error) {
       console.error('Error in getAllSubsidyApplicationsForAdmin:', error)
-      throw error
+      // エラーが発生した場合でも、デモデータではなく空配列を返す
+      return []
     }
   }
 
