@@ -3,7 +3,6 @@ import { DatabaseService } from '@/lib/database'
 import { supabase } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
-export const revalidate = 0 // Vercelのキャッシュを無効化
 
 export async function GET(request: NextRequest) {
   try {
@@ -80,15 +79,11 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.json(dashboardData)
     
-    // Vercel特有のキャッシュを含む全てのキャッシュを無効化
-    response.headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate, max-age=0, s-maxage=0')
+    // キャッシュを無効化するヘッダーを追加
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
     response.headers.set('Pragma', 'no-cache')
     response.headers.set('Expires', '0')
     response.headers.set('Surrogate-Control', 'no-store')
-    response.headers.set('CDN-Cache-Control', 'no-store')
-    response.headers.set('Vercel-Cache-Control', 'no-store')
-    response.headers.set('X-Vercel-Cache', 'MISS')
-    response.headers.set('Vary', '*')
     
     return response
 
@@ -100,11 +95,9 @@ export async function GET(request: NextRequest) {
     )
     
     // エラーレスポンスもキャッシュを無効化
-    errorResponse.headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate, max-age=0, s-maxage=0')
+    errorResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
     errorResponse.headers.set('Pragma', 'no-cache')
     errorResponse.headers.set('Expires', '0')
-    errorResponse.headers.set('CDN-Cache-Control', 'no-store')
-    errorResponse.headers.set('Vercel-Cache-Control', 'no-store')
     
     return errorResponse
   }
