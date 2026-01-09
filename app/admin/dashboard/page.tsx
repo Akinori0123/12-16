@@ -171,6 +171,7 @@ export default function AdminDashboardPage() {
     }
   }
 
+
   const getFilteredApplications = () => {
     let filtered = applications
 
